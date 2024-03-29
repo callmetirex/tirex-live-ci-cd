@@ -1,9 +1,16 @@
-name: Continuous Integration and Deployment
+name: Pull Requests
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
+
+env:
+  HELM_WORKING_DIRECTORY: ./helm/dotnet-sample-api-project
+  IMAGE_NAME: dotnet-sample-api-project
 
 jobs:
   build:
@@ -11,6 +18,8 @@ jobs:
     steps:
       - name: Check out Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
@@ -43,3 +52,14 @@ jobs:
           dotnet restore
           dotnet build
           dotnet publish ./DotNetSampleProject.API/DotNetSampleProject.API.csproj -c Release -o ./app/publish
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,arm'
+  
+      - name: Build image
+        run: |
+            docker buildx build . \
+              --platform linux/arm64 \
+              --load \
+              -f Dockerfile
