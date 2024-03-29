@@ -1,0 +1,6 @@
+assembly-informational-format: '{SemVer}.{env:BUILD_NUMBER ?? 0}-{Sha}'
+mode: MainLine
+major-version-bump-message: '\s?(breaking change:|major:)'
+minor-version-bump-message: '\s?(feat:|feature:|minor:)'
+patch-version-bump-message: '\s?(fix:|patch:)'
+no-bump-message: '\+semver:\s?(none|skip|ignore)'

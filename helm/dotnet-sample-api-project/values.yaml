@@ -1,0 +1,76 @@
+replicaCount: 1
+
+tag: latest
+datadog:
+  env: "sandbox"
+  service: "dotnet-sample-api-project"
+  version: "1.0"
+
+iam:
+  role: ""
+  account: ""
+
+api:
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+containerPort: 8080
+
+deployment:
+  health: /docker_health
+
+nodeSelector:
+  kubernetes.io/arch: arm64
+  kubernetes.io/os: linux
+
+tolerations: []
+
+affinity: {}
+
+networkPolicyEnabled: true
+
+horizontalPodAutoscaler:
+  enabled: false
+  minReplicas: 1
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 2
+  successThreshold: 1
+  failureThreshold: 3
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 2
+  successThreshold: 1
+  failureThreshold: 3
+
+ingress:
+  className: private
+  enabled: true
+  hosts:      
+    - host: dotnet-sample-api-project.test-api-sandbox
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []

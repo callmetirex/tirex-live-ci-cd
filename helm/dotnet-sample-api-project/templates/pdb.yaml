@@ -1,0 +1,17 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "dotnet-sample-api-project.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+    helm.sh/chart: {{ include "dotnet-sample-api-project.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+{{- end }}

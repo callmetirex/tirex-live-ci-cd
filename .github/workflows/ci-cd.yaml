@@ -1,0 +1,45 @@
+name: Continuous Integration and Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.13
+        with:
+          versionSpec: 5.9.0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3.5
+        with:
+          version: "v3.8.1"
+
+      - name: Generate Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.9.13
+        with:
+          useConfigFile: true
+          configFilePath: ./gitversion.yaml
+
+      - name: Helm Lint
+        run: helm lint $HELM_WORKING_DIRECTORY
+
+      - name: Setup dotnet tools
+        run: |
+          dotnet tool restore
+          dotnet restore
+          dotnet build
+          dotnet publish ./DotNetSampleProject.API/DotNetSampleProject.API.csproj -c Release -o ./app/publish

@@ -1,0 +1,25 @@
+{{- if .Values.horizontalPodAutoscaler.enabled }}
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dotnet-sample-api-project.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+    helm.sh/chart: {{ include "dotnet-sample-api-project.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dotnet-sample-api-project.fullname" . }}
+  minReplicas: {{ .Values.horizontalPodAutoscaler.minReplicas }}
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+{{- end }}

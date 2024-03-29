@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dotnet-sample-api-project.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+    helm.sh/chart: {{ include "dotnet-sample-api-project.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    tags.datadoghq.com/env: {{ .Values.datadog.env }}
+    tags.datadoghq.com/service: {{ .Values.datadog.service }}
+    tags.datadoghq.com/version: {{ .Values.datadog.version }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/{{ .Chart.Name }}.logs: '[{"source":"csharp"}]'
+      labels:
+        app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        ncp.hyland.com/network.private: allow
+        ncp.hyland.com/network.internet-access: egress
+        tags.datadoghq.com/env: {{ .Values.datadog.env }}
+        tags.datadoghq.com/service: {{ .Values.datadog.service }}
+        tags.datadoghq.com/version: {{ .Values.datadog.version }}
+    spec:
+      serviceAccountName: {{ .Values.iam.account }}
+      securityContext:
+        fsGroup: 65534
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.api.image }}:{{ .Values.tag }}"
+          imagePullPolicy: {{ .Values.api.pullPolicy }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            capabilities:
+              drop:
+                - all
+          env:
+            - name: ASPNETCORE_USEPARAMETERSTORE
+              value: "true"
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/version']
+            - name: DD_ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/env']
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/service']
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.deployment.health }}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.deployment.health }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - emptyDir: {}
+          name: tmp
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 10
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: {{ include "dotnet-sample-api-project.name" . }}
+                    app.kubernetes.io/instance: {{ .Release.Name }}
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+    {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
