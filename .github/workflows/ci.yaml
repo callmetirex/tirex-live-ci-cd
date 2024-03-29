@@ -48,10 +48,11 @@ jobs:
 
       - name: Setup dotnet tools
         run: |
+          cd DotNetSampleProject.API  # Change directory to where the project file is located
           dotnet tool restore
           dotnet restore
           dotnet build
-          dotnet publish ./DotNetSampleProject.API/DotNetSampleProject.API.csproj -c Release -o ./app/publish
+          dotnet publish DotNetSampleProject.API.csproj -c Release -o ../app/publish
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
